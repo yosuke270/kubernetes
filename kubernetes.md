@@ -245,7 +245,7 @@ kubectl create -f app-nginx.yaml
    podを確認してみると、削除直後のステータスはContainerCreatingになる。
    しばらくするとRunningになり無事に起動できた。
    Deploymentがpodが2つしか起動してないことを検知してdesired stateを維持するためにpodを起動させた
-
+   ![image](images/スクリーンショット%202025-10-07%20123525.png)
 6. クラスタを削除する
 ```bash
 kind delete cluster
