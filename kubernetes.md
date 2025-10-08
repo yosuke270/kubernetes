@@ -151,7 +151,7 @@ nodes:
 
 2. アプリの理想状態を設計する（kubernetesが読み込む）
 
-   ####　書き方
+   #### 書き方
       - apiversion
          kubernetesは色んな種類のリソースをAPIグループと呼ばれるカテゴリごとに管理している
          使うリソース毎に対応するapiversionを指定する
