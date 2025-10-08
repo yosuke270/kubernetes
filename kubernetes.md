@@ -152,22 +152,22 @@ nodes:
 2. アプリの理想状態を設計する（kubernetesが読み込む）
 
    #### 書き方
-      - apiversion
-         kubernetesは色んな種類のリソースをAPIグループと呼ばれるカテゴリごとに管理している
+      - apiversion<br>
+         kubernetesは色んな種類のリソースをAPIグループと呼ばれるカテゴリごとに管理している。<br>
          使うリソース毎に対応するapiversionを指定する
-      - kind
+      - kind<br>
           使うリソースの種類
           Kubernetes に「何を作りたいのか」を伝えるキーワード
-      - metadata
+      - metadata<br>
           リソースの名前やラベルなどの管理に使う情報を付与する
-      - spec
+      - spec<br>
          　リソースがどんな状態になってほしいかの定義
-      - replicas
+      - replicas<br>
             作りたいPodの数（希望する状態）
-      - selector
+      - selector<br>
             どのpodをこのDeploymentの管理対象にするか
-      - template
-            podの設計図 
+      - template<br>
+            podの設計図 <br>
             多くの場合1podにつき1containerだが、複数のコンテナにすることも可能
 ```yaml
 apiVersion: apps/v1
