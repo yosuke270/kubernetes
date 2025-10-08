@@ -33,14 +33,15 @@ yamlをKubernetes APIに読み込ませてリソースを作成する。<br>
 | Container Runtime       | コンテナの実行エンジン                                    |
 
 2. リソース
-   kubernetesが管理しているオブジェクト
+   kubernetesが管理しているオブジェクト（ユーザが定義する部分）
 
-| 種類       | 機能                              |
-| ---------- | --------------------------------- |
-| Deployment | Podを何個どう管理するかのルール   |
-| ReplicaSet | 同じ仕様のPodを複数生成・管理する |
-| Service    | podへのアクセスルール             |
-| pod        | 実際に動くコンテナの集まり        |
+| 種類                    | 機能                                                   |
+| ----------------------- | ------------------------------------------------------ |
+| Deployment              | Podを何個どう管理するかのルール                        |
+| ReplicaSet              | 同じ仕様のPodを複数生成・管理する                      |
+| Service                 | podへのアクセスルール                                  |
+| pod                     | 実際に動くコンテナの集まり                             |
+| HorizontalPodAutoscaler | CPUやメモリの使用率に応じてreplica数を自動的に調整する |
 
 3. 関連用語
 
@@ -148,7 +149,26 @@ nodes:
 - role: worker
 ```
 
-2. アプリのデプロイを設計する（kubernetesが読み込む）
+2. アプリの理想状態を設計する（kubernetesが読み込む）
+
+   ####　書き方
+      - apiversion
+         kubernetesは色んな種類のリソースをAPIグループと呼ばれるカテゴリごとに管理している
+         使うリソース毎に対応するapiversionを指定する
+      - kind
+          使うリソースの種類
+          Kubernetes に「何を作りたいのか」を伝えるキーワード
+      - metadata
+          リソースの名前やラベルなどの管理に使う情報を付与する
+      - spec
+         　リソースがどんな状態になってほしいかの定義
+      - replicas
+            作りたいPodの数（希望する状態）
+      - selector
+            どのpodをこのDeploymentの管理対象にするか
+      - template
+            podの設計図 
+            多くの場合1podにつき1containerだが、複数のコンテナにすることも可能
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -186,15 +206,13 @@ spec:
     - port: 80
       nodePort: 30080
 ```
-
-分解すると
-metadata:このDeploymentは何者か？
-spec:どんなPodを何個、どういう条件で動かすか？
-
 3. リソースの作成とアプリのデプロイ
 ```bash
 kind create cluster --config=multi_deploy_app.yaml
 kubectl create -f app-nginx.yaml
+# 既存のリソースがある場合はapply.createは同じリソースが存在するとエラーになる
+(kubectl apply -f app-nginx.yaml)　
+
 ```
 
 4. 起動の確認
@@ -235,32 +253,16 @@ kind delete cluster
 
 ### アクセス数に応じてpodをスケーリングさせる
 HPA(Horizontal Pod Autoscale)を用いることで実現可能
+ディフォルトではmetrics-serverが軽量化のためインストールされていないのでインストールする必要がある
 
-1. アプリのデプロイを設定する
+1. アプリの理想状態を設計する
    以下のyamlでDeployment、service、HorizontalPodAutoscalerを定義する
    要約すると
    -  アプリをデプロイ
    -  外部からアクセスできるように設定
    -  CPUの使用率に応じて自動スケールするように設定
 
-   ####　書き方
-      - apiversion
-         kubernetesは色んな種類のリソースをAPIグループと呼ばれるカテゴリごとに管理している
-         使うリソース毎に対応するapiversionを指定する
-      - kind
-          使うリソースの種類
-          Kubernetes に「何を作りたいのか」を伝えるキーワード
-      - metadata
-          リソースの名前やラベルなどの管理に使う情報を付与する
-      - spec
-         　リソースがどんな状態になってほしいかの定義
-      - replicas
-            作りたいPodの数（希望する状態）
-      - selector
-            どのpodをこのDeploymentの管理対象にするか
-      - template
-            podの設計図 
-            多くの場合1podにつき1containerだが、複数のコンテナにすることも可能
+
    ```yaml
    apiVersion: apps/v1
    kind: Deployment
@@ -325,24 +327,11 @@ HPA(Horizontal Pod Autoscale)を用いることで実現可能
       # 1) kindクラスタ作成
       kind create cluster --config=multi_deploy_app.yaml --name hpa-demo
 
-      # 2) metrics-server 導入
+      # 2) metrics-serverインストール
       kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 
-      # 2.1) kind向けパッチ（TLS検証を無効化）
-      kubectl -n kube-system patch deployment metrics-server \
-        --type='json' \
-        -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
-
-      # 2.2) 動作確認（数字が出ればOK）
-      kubectl top nodes || echo "metrics-serverが起動するまで少し待って再実行してください"
-
-      # 3) アプリ＆HPAを適用（createよりapplyが安全）
+      # 3) アプリ適用
       kubectl apply -f scaling.yaml
-
-      # 3.1) 状態確認
-      kubectl get deploy,svc,hpa,pods
-      kubectl describe hpa web-nginx
-
     ```
 3. podの状況を確認する
    ```bash
